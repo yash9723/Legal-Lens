@@ -1,0 +1,5 @@
+{
+  "name": "Copy of LegalLens AI",
+  "description": "An AI-powered legal contract analyzer that simplifies complex documents, flags risks, and provides plain-English summaries for non-lawyers. Supports text and image scanning.",
+  "requestFramePermissions": []
+}
