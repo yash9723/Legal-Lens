@@ -11,7 +11,6 @@ import {
     Download,
     Trash2,
     Upload,
-    Sparkles,
     Loader2,
     CheckCircle2,
     AlertCircle,
@@ -40,7 +39,7 @@ const TOOLS = [
     { id: 'image-to-pdf', label: 'Image to PDF', icon: ImageIcon, desc: 'Images to PDF' },
     { id: 'clause-gen', label: 'Clause Generator', icon: FileType, desc: 'Draft legal clauses' },
     { id: 'pii-redactor', label: 'PII Redactor', icon: Shield, desc: 'Redact sensitive info' },
-    { id: 'summarizer', label: 'Legal Summarizer', icon: Sparkles, desc: 'AI Contract Summary' },
+    { id: 'summarizer', label: 'Legal Summarizer', icon: FileText, desc: 'Contract Summary' },
     { id: 'checklist', label: 'Execution Checklist', icon: ClipboardCheck, desc: 'Signing steps' },
     { id: 'deadlines', label: 'Deadline Extractor', icon: Calendar, desc: 'Find key dates' },
     { id: 'dictionary', label: 'Legal Dictionary', icon: BookOpen, desc: 'Simplify jargon' },
@@ -70,10 +69,10 @@ const ToolsView: React.FC<{ user: any; onLoginClick: () => void }> = ({ user, on
     }, []);
 
     return (
-        <div className="flex flex-col space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20">
-            <div className="text-center space-y-2">
-                <h2 className="text-3xl font-bold text-slate-900 dark:text-white">Document Tools</h2>
-                <p className="text-slate-500 dark:text-slate-400">Utility tools to simplify your document workflow.</p>
+        <div className="flex flex-col space-y-8 page-enter pb-20">
+            <div className="text-center space-y-3">
+                <h2 className="text-3xl font-extrabold text-slate-900 dark:text-white">Document Tools</h2>
+                <p className="text-slate-500 dark:text-slate-400 text-lg">Utility tools to simplify your document workflow.</p>
             </div>
 
             {/* Custom Tool Dropdown */}
@@ -81,7 +80,7 @@ const ToolsView: React.FC<{ user: any; onLoginClick: () => void }> = ({ user, on
                 <div className="w-full max-w-md relative" ref={dropdownRef}>
                     <button
                         onClick={() => setIsOpen(!isOpen)}
-                        className="w-full flex items-center justify-between bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-4 text-left shadow-lg hover:border-blue-500 transition-all group"
+                        className="w-full flex items-center justify-between bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/50 rounded-2xl px-5 py-4 text-left shadow-lg hover:border-blue-400 dark:hover:border-blue-500/30 transition-all group backdrop-blur-sm"
                     >
                         <div className="flex items-center gap-3">
                             <div className="p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg text-blue-600 dark:text-blue-400">
@@ -102,7 +101,7 @@ const ToolsView: React.FC<{ user: any; onLoginClick: () => void }> = ({ user, on
                                 animate={{ opacity: 1, y: 0, scale: 1 }}
                                 exit={{ opacity: 0, y: -10, scale: 0.95 }}
                                 transition={{ duration: 0.15 }}
-                                className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl overflow-hidden max-h-[400px] overflow-y-auto no-scrollbar"
+                                className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700/50 rounded-2xl shadow-2xl overflow-hidden max-h-[400px] overflow-y-auto no-scrollbar backdrop-blur-xl"
                             >
                                 <div className="p-2 space-y-1">
                                     {TOOLS.map((tool) => (
@@ -143,7 +142,7 @@ const ToolsView: React.FC<{ user: any; onLoginClick: () => void }> = ({ user, on
                 </div>
             </div>
 
-            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden min-h-[500px]">
+            <div className="bg-white dark:bg-slate-900/30 rounded-2xl border border-slate-200 dark:border-slate-700/50 shadow-sm overflow-hidden min-h-[500px] backdrop-blur-sm">
                 {activeTool === 'pdf-to-text' && <PdfToTextConverter />}
                 {activeTool === 'text-to-pdf' && <TextToPdfConverter />}
                 {activeTool === 'image-to-pdf' && <ImageToPdfConverter />}
@@ -374,7 +373,7 @@ const TextToPdfConverter = () => {
                         disabled={!text.trim() || isGenerating}
                         className="px-8 py-3 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-xl font-bold flex items-center gap-2 hover:scale-[1.02] active:scale-95 transition-all shadow-lg disabled:opacity-50"
                     >
-                        {isGenerating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4 text-emerald-500" />}
+                        {isGenerating ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileText className="w-4 h-4 text-emerald-500" />}
                         Generate PDF
                     </button>
                 </div>
@@ -554,7 +553,7 @@ const ClauseGenerator = () => {
                     {!generatedClause && (
                         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                             <button onClick={generate} className="pointer-events-auto px-6 py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition-all shadow-lg flex items-center gap-2">
-                                <Sparkles className="w-4 h-4" />
+                                <FileText className="w-4 h-4" />
                                 Generate {selectedType} Template
                             </button>
                         </div>
@@ -680,8 +679,8 @@ const LegalSummarizer: React.FC<{ user: any, onLoginClick: () => void }> = ({ us
         <div className="p-8 h-full flex flex-col">
             <div className="mb-6">
                 <h3 className="text-xl font-bold dark:text-white flex items-center gap-2">
-                    <Sparkles className="w-5 h-5 text-blue-500" />
-                    AI Legal Summarizer
+                    <FileText className="w-5 h-5 text-blue-500" />
+                    Legal Summarizer
                 </h3>
                 <p className="text-sm text-slate-500">Get an executive briefing of complex contracts.</p>
             </div>
@@ -702,7 +701,7 @@ const LegalSummarizer: React.FC<{ user: any, onLoginClick: () => void }> = ({ us
                         disabled={!text.trim() || isProcessing}
                         className="px-12 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl font-bold hover:scale-105 active:scale-95 transition-all shadow-xl disabled:opacity-50 flex items-center gap-2"
                     >
-                        {isProcessing ? <Loader2 className="w-5 h-5 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                        {isProcessing ? <Loader2 className="w-5 h-5 animate-spin" /> : <FileText className="w-4 h-4" />}
                         {user ? "Summarize Now" : "Login to Summarize"}
                     </button>
                 </div>

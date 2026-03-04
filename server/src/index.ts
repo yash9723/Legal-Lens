@@ -91,6 +91,7 @@ import simplifyRoutes from './routes/simplifyRoutes';
 import summarizeRoutes from './routes/summarizeRoutes';
 import deadlineRoutes from './routes/deadlineRoutes';
 import checklistRoutes from './routes/checklistRoutes';
+import caseAnalysisRoutes from './routes/caseAnalysisRoutes';
 
 app.use('/api/auth', authRoutes);
 app.use('/api/analyze', analyzeRoutes);
@@ -101,6 +102,7 @@ app.use('/api/simplify', simplifyRoutes);
 app.use('/api/summarize', summarizeRoutes);
 app.use('/api/deadline', deadlineRoutes);
 app.use('/api/checklist', checklistRoutes);
+app.use('/api/case-analysis', caseAnalysisRoutes);
 
 // Database connection
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/legallens';

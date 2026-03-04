@@ -1,4 +1,4 @@
-import { AnalysisResult, AnalyzeParams } from "../types";
+import { AnalysisResult, AnalyzeParams, CaseAnalysisResult, CaseAnalyzeParams } from "../types";
 import api from "./api";
 import { logger } from "./loggerService";
 
@@ -15,12 +15,27 @@ export const analyzeContract = async (
     return response.data;
   } catch (error) {
     logger.error("ai", "Analysis failed", error);
-    // Fallback or rethrow
+    throw error;
+  }
+};
+
+/**
+ * Calls the backend API to analyze case paperwork.
+ */
+export const analyzeCase = async (
+  params: CaseAnalyzeParams
+): Promise<CaseAnalysisResult> => {
+  logger.info("ai", "Calling backend for case analysis");
+
+  try {
+    const response = await api.post('/case-analysis', params);
+    return response.data;
+  } catch (error) {
+    logger.error("ai", "Case analysis failed", error);
     throw error;
   }
 };
 
 export const createChatSession = async () => {
-  // Implement chat session if backend supports it, otherwise keep stub or remove
   throw new Error("Chat session not implemented in backend yet");
 };

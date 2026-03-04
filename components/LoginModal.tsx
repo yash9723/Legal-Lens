@@ -124,11 +124,11 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLogin, initi
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
       <div
-        className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity"
+        className="absolute inset-0 bg-slate-900/70 backdrop-blur-md transition-opacity"
         onClick={onClose}
       />
 
-      <div className="relative w-full max-w-md bg-white dark:bg-slate-800 rounded-2xl shadow-2xl overflow-hidden transform transition-all animate-in fade-in zoom-in-95 duration-200">
+      <div className="relative w-full max-w-md bg-white/95 dark:bg-slate-800/95 backdrop-blur-xl rounded-3xl shadow-2xl shadow-black/20 overflow-hidden transform transition-all page-enter border border-slate-200/50 dark:border-slate-700/50">
 
         {/* Header with Toggle (Hide for Reset Mode) */}
         {mode !== 'reset-otp' && (
@@ -236,7 +236,7 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLogin, initi
                     required={mode === 'signup'}
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700/50 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+                    className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700/50 text-slate-900 dark:text-white focus-glow outline-none transition-all"
                     placeholder="John Doe"
                   />
                 </div>
@@ -253,7 +253,7 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLogin, initi
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700/50 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+                    className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700/50 text-slate-900 dark:text-white focus-glow outline-none transition-all"
                     placeholder="you@example.com"
                     disabled={mode === 'reset-otp'}
                   />
@@ -273,7 +273,7 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLogin, initi
                     required
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700/50 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+                    className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700/50 text-slate-900 dark:text-white focus-glow outline-none transition-all"
                     placeholder={mode === 'reset-otp' ? "Min 6 chars" : "••••••••"}
                   />
                 </div>
@@ -307,7 +307,7 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLogin, initi
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full py-2.5 mt-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg shadow-md hover:shadow-lg transition-all disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="w-full py-3 mt-2 btn-gradient font-semibold rounded-xl shadow-lg shadow-blue-500/20 hover:shadow-xl transition-all disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2 hover:scale-[1.01] active:scale-[0.99]"
             >
               {isLoading ? (
                 <>

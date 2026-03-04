@@ -9,16 +9,17 @@ import LoginModal from './components/LoginModal';
 import LogViewer from './components/LogViewer';
 import SettingsModal from './components/SettingsModal';
 import ToolsView from './components/ToolsView';
+import CaseAnalysisView from './components/CaseAnalysisView';
 import { analyzeContract } from './services/geminiService';
 import { logger } from './services/loggerService';
 import { StorageService } from './services/storageService';
 import { AnalysisResult, UserProfile, AnalyzeParams, SavedAnalysis } from './types';
-import { AlertCircle, Bug, X, Sparkles } from 'lucide-react';
+import { AlertCircle, Bug, X } from 'lucide-react';
 import { AuthService } from './services/authService';
 import WelcomePage from './components/WelcomePage';
 
 const App: React.FC = () => {
-  const [currentTab, setCurrentTab] = useState<'analyze' | 'pricing' | 'compare' | 'tools'>('analyze');
+  const [currentTab, setCurrentTab] = useState<'analyze' | 'pricing' | 'compare' | 'tools' | 'case-analysis'>('analyze');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
   const [showWelcome, setShowWelcome] = useState(true);
@@ -342,14 +343,23 @@ const App: React.FC = () => {
             )}
 
             {currentTab === 'compare' && (
-              <div className="max-w-6xl mx-auto">
+              <div className="max-w-6xl mx-auto page-enter" key="compare">
                 <ComparisonView />
               </div>
             )}
 
             {currentTab === 'tools' && (
-              <div className="max-w-6xl mx-auto">
+              <div className="max-w-6xl mx-auto page-enter" key="tools">
                 <ToolsView
+                  user={user}
+                  onLoginClick={() => setIsLoginModalOpen(true)}
+                />
+              </div>
+            )}
+
+            {currentTab === 'case-analysis' && (
+              <div className="max-w-6xl mx-auto page-enter" key="case-analysis">
+                <CaseAnalysisView
                   user={user}
                   onLoginClick={() => setIsLoginModalOpen(true)}
                 />
@@ -359,67 +369,63 @@ const App: React.FC = () => {
 
             {currentTab === 'analyze' && (
               <>
-                {currentTab === 'analyze' && (
-                  <>
-                    {showWelcome ? (
-                      <WelcomePage onStart={() => setShowWelcome(false)} />
-                    ) : (
-                      <>
-                        {/* Header for Analysis View (Hidden when result is shown to avoid duplication) */}
-                        {!analysisResult && (
-                          <div className="text-center mb-8 space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500 pt-4">
-                            <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
-                              Upload Contract
-                            </h1>
-                            <p className="text-slate-500 dark:text-slate-400 max-w-lg mx-auto">
-                              Upload a PDF, Image, or paste text. We'll handle the rest.
-                            </p>
-                          </div>
-                        )}
-
-                        {error && (
-                          <div className="max-w-4xl mx-auto mb-8 p-4 bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800 rounded-xl text-red-700 dark:text-red-300 flex items-start gap-3 animate-in fade-in slide-in-from-top-2 shadow-sm backdrop-blur-sm">
-                            <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
-                            <div className="flex-1">
-                              <span className="font-bold block mb-1">Analysis Failed</span>
-                              <span className="opacity-90">{error}</span>
-                            </div>
-                            <button
-                              onClick={() => {
-                                logger.info('ui', 'User dismissed error message');
-                                setError(null);
-                              }}
-                              className="p-1 hover:bg-red-100 dark:hover:bg-red-900/40 rounded transition-colors"
-                            >
-                              <X className="w-4 h-4" />
-                            </button>
-                          </div>
-                        )}
-
-                        {!analysisResult ? (
-                          <>
-                            <InputArea onAnalyze={handleAnalyze} isAnalyzing={isAnalyzing} />
-                            <div className="mt-12 text-center">
-                              <button
-                                onClick={() => setShowWelcome(true)}
-                                className="text-sm text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 underline underline-offset-4"
-                              >
-                                &larr; Back to Home
-                              </button>
-                            </div>
-                          </>
-                        ) : (
-                          <AnalysisView
-                            data={analysisResult}
-                            onReset={handleReset}
-                            imageUrl={currentImageSrc}
-                            analyzeParams={lastAnalyzeParams!}
-                            userPlan={user?.plan}
-                          />
-                        )}
-                      </>
+                {showWelcome ? (
+                  <WelcomePage onStart={() => setShowWelcome(false)} />
+                ) : (
+                  <div className="page-enter">
+                    {/* Header for Analysis View */}
+                    {!analysisResult && (
+                      <div className="text-center mb-8 space-y-4 pt-4">
+                        <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">
+                          Upload Contract
+                        </h1>
+                        <p className="text-slate-500 dark:text-slate-400 max-w-lg mx-auto">
+                          Upload a PDF, Image, or paste text. We'll handle the rest.
+                        </p>
+                      </div>
                     )}
-                  </>
+
+                    {error && (
+                      <div className="max-w-4xl mx-auto mb-8 p-4 bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800 rounded-2xl text-red-700 dark:text-red-300 flex items-start gap-3 shadow-sm backdrop-blur-sm">
+                        <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+                        <div className="flex-1">
+                          <span className="font-bold block mb-1">Analysis Failed</span>
+                          <span className="opacity-90">{error}</span>
+                        </div>
+                        <button
+                          onClick={() => {
+                            logger.info('ui', 'User dismissed error message');
+                            setError(null);
+                          }}
+                          className="p-1 hover:bg-red-100 dark:hover:bg-red-900/40 rounded-lg transition-colors"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    )}
+
+                    {!analysisResult ? (
+                      <>
+                        <InputArea onAnalyze={handleAnalyze} isAnalyzing={isAnalyzing} />
+                        <div className="mt-12 text-center">
+                          <button
+                            onClick={() => setShowWelcome(true)}
+                            className="text-sm text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 underline underline-offset-4 transition-colors"
+                          >
+                            &larr; Back to Home
+                          </button>
+                        </div>
+                      </>
+                    ) : (
+                      <AnalysisView
+                        data={analysisResult}
+                        onReset={handleReset}
+                        imageUrl={currentImageSrc}
+                        analyzeParams={lastAnalyzeParams!}
+                        userPlan={user?.plan}
+                      />
+                    )}
+                  </div>
                 )}
               </>
             )}

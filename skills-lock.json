@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "skills": {
+    "react-ui-patterns": {
+      "source": "sickn33/antigravity-awesome-skills",
+      "sourceType": "github",
+      "computedHash": "6c004e2900e1c11452e3de3ff144e287daf69fcdcb6f27c11483d34bddb57326"
+    },
+    "software-architecture": {
+      "source": "sickn33/antigravity-awesome-skills",
+      "sourceType": "github",
+      "computedHash": "87cf49408fdf09614ca9e39e3f2a3e8fd4ff5f628f72f70e142bbaa1c32f046e"
+    },
+    "ui-ux-pro-max": {
+      "source": "sickn33/antigravity-awesome-skills",
+      "sourceType": "github",
+      "computedHash": "c20ac9ab3cafca2f229e42097ed8cce1924538cbc2ae4b4a65968003394e8077"
+    }
+  }
+}

@@ -13,7 +13,6 @@ import {
   ScanEye,
   PenTool,
   Stamp,
-  Sparkles,
   X,
   Maximize2,
   Strikethrough,
@@ -969,7 +968,6 @@ const AnalysisView: React.FC<AnalysisViewProps> = ({ data, onReset, imageUrl, an
 
                               {isLoading ? (
                                 <div className="flex items-center gap-2 text-slate-400 text-xs py-2">
-                                  <Sparkles className="w-4 h-4 animate-pulse text-purple-500" />
                                   <span className="animate-pulse">Simplifying for you...</span>
                                 </div>
                               ) : error ? (

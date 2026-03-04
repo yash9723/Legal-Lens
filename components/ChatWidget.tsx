@@ -6,8 +6,6 @@ import {
   X,
   Loader2,
   User,
-  Bot,
-  Sparkles,
   Minimize2,
   Maximize2,
   Trash2,
@@ -168,7 +166,7 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ analysisResult }) => {
       >
         <div className="flex items-center gap-3">
           <div className="bg-gradient-to-tr from-blue-600 to-indigo-600 p-2 rounded-xl">
-            <Sparkles className="w-5 h-5 text-white" />
+            <MessageSquare className="w-5 h-5 text-white" />
           </div>
           <div>
             <h3 className="font-bold">Legal Assistant</h3>
@@ -202,7 +200,7 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ analysisResult }) => {
             {messages.map(msg => (
               <div key={msg.id} className={`flex gap-3 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
                 <div className="w-9 h-9 rounded-full flex items-center justify-center bg-slate-200 dark:bg-slate-700">
-                  {msg.role === 'user' ? <User /> : <Bot />}
+                  {msg.role === 'user' ? <User /> : <MessageSquare />}
                 </div>
                 <div className="bg-white dark:bg-slate-800 px-4 py-3 rounded-xl max-w-[80%] text-sm whitespace-pre-wrap">
                   {msg.text}

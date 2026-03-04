@@ -103,3 +103,84 @@ export interface AnalyzeParams {
   inputLanguage?: string;
   fileName?: string; // Optional filename for history tracking
 }
+
+// --- Case Analysis Types ---
+
+export type CaseType = 'FIR' | 'Petition' | 'Judgment' | 'Affidavit' | 'Charge Sheet' | 'Appeal' | 'Other';
+
+export interface CaseParty {
+  name: string;
+  role: string; // e.g., "Complainant", "Defendant", "Witness", "Judge", "Advocate"
+  details: string;
+}
+
+export interface CaseTimelineEvent {
+  date: string;
+  event: string;
+  significance: string;
+}
+
+export interface LegalIssue {
+  issue: string;
+  relevantLaw: string;
+  analysis: string;
+}
+
+export interface CasePrecedent {
+  caseName: string;
+  citation: string;
+  relevance: string;
+  favorsSide: string; // "Prosecution/Petitioner" | "Defense/Respondent" | "Neutral"
+}
+
+export interface CaseArgument {
+  point: string;
+  strength: 'Strong' | 'Moderate' | 'Weak';
+  explanation: string;
+}
+
+export interface CaseStrengthWeakness {
+  type: 'strength' | 'weakness';
+  description: string;
+  impact: 'High' | 'Medium' | 'Low';
+}
+
+export interface CaseStrategy {
+  action: string;
+  priority: 'Immediate' | 'Short-term' | 'Long-term';
+  details: string;
+}
+
+export interface CaseOutcomePrediction {
+  likelihood: string; // e.g., "Favorable", "Unfavorable", "Uncertain"
+  confidence: number; // 0-100
+  reasoning: string;
+}
+
+export interface CaseAnalysisResult {
+  caseSummary: string;
+  caseType: string;
+  caseNumber?: string;
+  courtName?: string;
+  filingDate?: string;
+  parties: CaseParty[];
+  timeline: CaseTimelineEvent[];
+  legalIssues: LegalIssue[];
+  prosecutionArguments: CaseArgument[];
+  defenseArguments: CaseArgument[];
+  citedPrecedents: CasePrecedent[];
+  prosecutionStrengths: CaseStrengthWeakness[];
+  prosecutionWeaknesses: CaseStrengthWeakness[];
+  defenseStrengths: CaseStrengthWeakness[];
+  defenseWeaknesses: CaseStrengthWeakness[];
+  recommendedStrategy: CaseStrategy[];
+  outcomePrediction: CaseOutcomePrediction;
+}
+
+export interface CaseAnalyzeParams {
+  type: 'text' | 'image';
+  content: string | string[];
+  mimeType?: string;
+  caseType: CaseType;
+  fileName?: string;
+}
