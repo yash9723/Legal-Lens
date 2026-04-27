@@ -35,7 +35,20 @@ import { logger } from './utils/logger';
 
 // 2. Security Middleware
 app.use(enforceHttps);
-app.use(helmet());
+app.use(helmet({
+    contentSecurityPolicy: {
+        directives: {
+            defaultSrc: ["'self'"],
+            scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://accounts.google.com"],
+            styleSrc: ["'self'", "'unsafe-inline'", "https://use.typekit.net", "https://fonts.googleapis.com"],
+            fontSrc: ["'self'", "data:", "https://fonts.gstatic.com", "https://use.typekit.net", "https://p.typekit.net"],
+            imgSrc: ["'self'", "data:", "blob:", "https://*"],
+            connectSrc: ["'self'", "https://accounts.google.com", "https://generativelanguage.googleapis.com"],
+            frameSrc: ["'self'", "https://accounts.google.com"]
+        }
+    },
+    crossOriginEmbedderPolicy: false
+}));
 app.use(mongoSanitize());
 app.use(hpp());
 app.use(xss());
