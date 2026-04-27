@@ -8,6 +8,10 @@
     "dev:client": "vite",
     "dev:server": "npm run dev --prefix server",
     "build": "tsc -b && vite build",
+    "build:client": "vite build --outDir client-dist",
+    "build:server": "cd server && npm install && npm run build",
+    "render-build": "npm install && npm run build:client && npm run build:server",
+    "start": "cd server && node dist/index.js",
     "lint": "eslint .",
     "preview": "vite preview"
   },

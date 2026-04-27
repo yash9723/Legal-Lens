@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import mongoose from 'mongoose';
+import path from 'path';
 
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
@@ -14,8 +15,11 @@ dotenv.config();
 
 const app = express();
 
+// Trust proxy for Render / Heroku / etc.
+app.set('trust proxy', 1);
+
 // 1. Secrets Management & Validation
-const requiredEnvVars = ['JWT_SECRET', 'GEMINI_API_KEY', 'MONGODB_URI', 'GOOGLE_CLIENT_ID'];
+const requiredEnvVars = ['JWT_SECRET', 'GEMINI_API_KEY', 'GOOGLE_CLIENT_ID'];
 const missingEnvVars = requiredEnvVars.filter(key => !process.env[key]);
 
 if (missingEnvVars.length > 0) {
@@ -51,6 +55,11 @@ if (process.env.CLIENT_URL) {
     allowedOrigins.push(process.env.CLIENT_URL);
 }
 
+// In production, also allow the same-origin requests from the served frontend
+if (process.env.RENDER_EXTERNAL_URL) {
+    allowedOrigins.push(process.env.RENDER_EXTERNAL_URL);
+}
+
 // Apply validateOrigin middleware (Strict check)
 // Note: We apply it globally for now to secure the API. 
 // If it breaks static assets or something we can narrow it down.
@@ -76,10 +85,9 @@ app.use((req, res, next) => {
     next();
 });
 
-// Basic health check route
-// Basic health check route
-app.get('/', (req, res) => {
-    res.send('Legal Lens API is running');
+// API health check route
+app.get('/api/health', (req, res) => {
+    res.json({ status: 'ok', message: 'Legal Lens API is running' });
 });
 
 import authRoutes from './routes/authRoutes';
@@ -104,19 +112,35 @@ app.use('/api/deadline', deadlineRoutes);
 app.use('/api/checklist', checklistRoutes);
 app.use('/api/case-analysis', caseAnalysisRoutes);
 
+// --- Production: Serve React frontend ---
+const clientDistPath = path.join(__dirname, '..', '..', 'client-dist');
+app.use(express.static(clientDistPath));
+
+// SPA fallback — any non-API route serves index.html
+app.get('*', (req, res) => {
+    if (!req.path.startsWith('/api')) {
+        res.sendFile(path.join(clientDistPath, 'index.html'));
+    }
+});
+
 // Database connection
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/legallens';
 
 console.log('Starting server...');
-console.log('Trying to connect to MongoDB at:', MONGODB_URI);
 
-mongoose.connect(MONGODB_URI)
-    .then(() => {
-        console.log('Connected to MongoDB');
-        app.listen(PORT, () => {
-            console.log(`Server is running on port ${PORT}`);
+// Start server immediately, connect to MongoDB in background
+app.listen(PORT, () => {
+    console.log(`Server is running on port ${PORT}`);
+});
+
+if (MONGODB_URI) {
+    console.log('Connecting to MongoDB...');
+    mongoose.connect(MONGODB_URI)
+        .then(() => {
+            console.log('Connected to MongoDB');
+        })
+        .catch((err) => {
+            console.error('MongoDB connection error:', err);
+            console.log('Server will continue running without database.');
         });
-    })
-    .catch((err) => {
-        console.error('MongoDB connection error:', err);
-    });
+}

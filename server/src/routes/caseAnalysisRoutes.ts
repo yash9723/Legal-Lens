@@ -1,48 +1,59 @@
 import express from 'express';
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import { auth, AuthRequest } from '../middleware/auth';
+import { AuthRequest } from '../middleware/auth';
 import User from '../models/User';
 import { logger } from '../utils/logger';
+import jwt from 'jsonwebtoken';
 
 const router = express.Router();
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 
-router.post('/', auth, async (req: AuthRequest, res) => {
-    try {
-        const { content, type, caseType, fileName } = req.body;
+router.post('/', async (req: AuthRequest, res) => {
+  try {
+    const { content, type, caseType, fileName } = req.body;
 
-        const userId = req.user.id;
+    // Try to extract user from token if present, but don't require it
+    const token = req.header('Authorization')?.replace('Bearer ', '');
+    if (token) {
+      try {
+        req.user = jwt.verify(token, process.env.JWT_SECRET || 'default_secret');
+      } catch (e) { /* ignore invalid token */ }
+    }
 
-        // 1. Fetch User and Check Limits
-        const user = await User.findById(userId);
-        if (!user) return res.status(404).json({ message: 'User not found' });
+    const userId = req.user?.id;
 
-        const limits: { [key: string]: number } = {
-            'Free': 2,
-            'Starter': 10,
-            'Professional': 50,
-            'Team': 200
-        };
+    // Fetch User and Check Limits (skip if anonymous)
+    let user: any = null;
+    if (userId) {
+      user = await User.findById(userId);
+    }
 
-        const limit = limits[user.plan] || 2;
+    if (user && user.role !== 'admin') {
+      const limits: { [key: string]: number } = {
+        'Free': 2,
+        'Starter': 10,
+        'Professional': 50,
+        'Team': 200
+      };
 
-        if (user.role !== 'admin') {
-            if (user.documentsAnalyzed >= limit) {
-                return res.status(403).json({
-                    message: `You have reached the limit of ${limit} documents for the ${user.plan} plan. Please upgrade to analyze more.`
-                });
-            }
-        }
+      const limit = limits[user.plan] || 2;
 
-        if (!process.env.GEMINI_API_KEY) {
-            logger.error("Gemini API Key missing in env");
-            return res.status(500).json({ message: 'Server Configuration Error' });
-        }
+      if (user.documentsAnalyzed >= limit) {
+        return res.status(403).json({
+          message: `You have reached the limit of ${limit} documents for the ${user.plan} plan. Please upgrade to analyze more.`
+        });
+      }
+    }
 
-        let promptParts: any[] = [];
+    if (!process.env.GEMINI_API_KEY) {
+      logger.error("Gemini API Key missing in env");
+      return res.status(500).json({ message: 'Server Configuration Error' });
+    }
 
-        const instructions = `
+    let promptParts: any[] = [];
+
+    const instructions = `
 You are an expert Indian legal analyst specializing in case law analysis for advocates and legal officials.
 Analyze the following ${caseType || 'legal'} document thoroughly and provide a comprehensive case analysis.
 
@@ -107,89 +118,91 @@ IMPORTANT ANALYSIS GUIDELINES:
 - If it's a Petition, identify the relief sought and grounds.
 `;
 
-        promptParts.push(instructions);
+    promptParts.push(instructions);
 
-        if (type === 'image' && content) {
-            const contents = Array.isArray(content) ? content : [content];
+    if (type === 'image' && content) {
+      const contents = Array.isArray(content) ? content : [content];
 
-            contents.forEach((c: string) => {
-                const base64Data = c.includes('base64,') ? c.split('base64,')[1] : c;
+      contents.forEach((c: string) => {
+        const base64Data = c.includes('base64,') ? c.split('base64,')[1] : c;
 
-                promptParts.push({
-                    inlineData: {
-                        data: base64Data,
-                        mimeType: req.body.mimeType || 'image/png'
-                    }
-                });
-            });
-        } else {
-            promptParts.push(`Document Content:\n${content}`);
-        }
-
-        const model = genAI.getGenerativeModel({ model: 'gemini-flash-latest' });
-
-        let text = '';
-        let success = false;
-
-        try {
-            const result = await model.generateContent(promptParts);
-            const response = await result.response;
-            text = response.text();
-            success = true;
-        } catch (e: any) {
-            logger.error(`Case analysis model failed: ${e.message}`);
-        }
-
-        if (!success) {
-            logger.error("Case analysis failed");
-            return res.status(500).json({
-                message: 'Case analysis failed. Please try again later.',
-            });
-        }
-
-        // Robust JSON extraction
-        const cleanText = text.replace(/```json/g, '').replace(/```/g, '').trim();
-
-        let analysisResult;
-        try {
-            const firstBrace = cleanText.indexOf('{');
-            const lastBrace = cleanText.lastIndexOf('}');
-
-            if (firstBrace !== -1 && lastBrace !== -1) {
-                const jsonString = cleanText.substring(firstBrace, lastBrace + 1);
-                analysisResult = JSON.parse(jsonString);
-            } else {
-                throw new Error("No JSON object found in response");
-            }
-        } catch (e) {
-            logger.error("Failed to parse JSON from Gemini for case analysis", { error: e });
-            return res.status(500).json({ message: 'Failed to process AI response' });
-        }
-
-        // Audit Log
-        logger.logAction(userId, 'CASE_ANALYZED', {
-            fileName: fileName || 'Untitled Case',
-            caseType: caseType || 'Other',
-            plan: user.plan
+        promptParts.push({
+          inlineData: {
+            data: base64Data,
+            mimeType: req.body.mimeType || 'image/png'
+          }
         });
-
-        // Update user stats
-        await User.findByIdAndUpdate(userId, { $inc: { documentsAnalyzed: 1 } });
-
-        const responsePayload = {
-            ...analysisResult,
-            _id: 'case_' + Date.now(),
-            fileName: fileName || 'Untitled Case',
-            caseType: caseType || 'Other',
-            createdAt: new Date(),
-        };
-
-        res.json(responsePayload);
-
-    } catch (err: any) {
-        logger.error('Case Analysis Route Error', err);
-        res.status(500).send('Server Error');
+      });
+    } else {
+      promptParts.push(`Document Content:\n${content}`);
     }
+
+    const model = genAI.getGenerativeModel({ model: 'gemini-flash-latest' });
+
+    let text = '';
+    let success = false;
+
+    try {
+      const result = await model.generateContent(promptParts);
+      const response = await result.response;
+      text = response.text();
+      success = true;
+    } catch (e: any) {
+      logger.error(`Case analysis model failed: ${e.message}`);
+    }
+
+    if (!success) {
+      logger.error("Case analysis failed");
+      return res.status(500).json({
+        message: 'Case analysis failed. Please try again later.',
+      });
+    }
+
+    // Robust JSON extraction
+    const cleanText = text.replace(/```json/g, '').replace(/```/g, '').trim();
+
+    let analysisResult;
+    try {
+      const firstBrace = cleanText.indexOf('{');
+      const lastBrace = cleanText.lastIndexOf('}');
+
+      if (firstBrace !== -1 && lastBrace !== -1) {
+        const jsonString = cleanText.substring(firstBrace, lastBrace + 1);
+        analysisResult = JSON.parse(jsonString);
+      } else {
+        throw new Error("No JSON object found in response");
+      }
+    } catch (e) {
+      logger.error("Failed to parse JSON from Gemini for case analysis", { error: e });
+      return res.status(500).json({ message: 'Failed to process AI response' });
+    }
+
+    // Audit Log (only if user is authenticated)
+    if (userId) {
+      logger.logAction(userId, 'CASE_ANALYZED', {
+        fileName: fileName || 'Untitled Case',
+        caseType: caseType || 'Other',
+        plan: user?.plan
+      });
+
+      // Update user stats
+      await User.findByIdAndUpdate(userId, { $inc: { documentsAnalyzed: 1 } });
+    }
+
+    const responsePayload = {
+      ...analysisResult,
+      _id: 'case_' + Date.now(),
+      fileName: fileName || 'Untitled Case',
+      caseType: caseType || 'Other',
+      createdAt: new Date(),
+    };
+
+    res.json(responsePayload);
+
+  } catch (err: any) {
+    logger.error('Case Analysis Route Error', err);
+    res.status(500).send('Server Error');
+  }
 });
 
 export default router;

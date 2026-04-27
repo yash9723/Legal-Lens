@@ -1,51 +1,55 @@
 import express from 'express';
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import { auth, AuthRequest } from '../middleware/auth';
+import { AuthRequest } from '../middleware/auth';
 import User from '../models/User';
 import { logger } from '../utils/logger';
+import jwt from 'jsonwebtoken';
 
 const router = express.Router();
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 
-router.post('/', auth, async (req: AuthRequest, res) => {
+router.post('/', async (req: AuthRequest, res) => {
     try {
+        // Try to extract user from token if present, but don't require it
+        const token = req.header('Authorization')?.replace('Bearer ', '');
+        if (token) {
+            try {
+                req.user = jwt.verify(token, process.env.JWT_SECRET || 'default_secret');
+            } catch (e) { /* ignore invalid token */ }
+        }
+
         const { content, type, fileName } = req.body;
-        // Privacy: No logging of content or detailed request body
-        // logger.info("Analyze route hit", { userId: req.user.id });
 
-        const userId = req.user.id;
+        const userId = req.user?.id;
 
-        // 1. Fetch User and Check Limits
-        const user = await User.findById(userId);
-        if (!user) return res.status(404).json({ message: 'User not found' });
+        // 1. Fetch User and Check Limits (skip if anonymous)
+        let user: any = null;
+        if (userId) {
+            user = await User.findById(userId);
+        }
 
-        const limits: { [key: string]: number } = {
-            'Free': 2,
-            'Starter': 10,
-            'Professional': 50,
-            'Team': 200
-        };
+        if (user && user.role !== 'admin') {
+            const limits: { [key: string]: number } = {
+                'Free': 2,
+                'Starter': 10,
+                'Professional': 50,
+                'Team': 200
+            };
 
-        const limit = limits[user.plan] || 2;
+            const limit = limits[user.plan] || 2;
 
-        // Character Limits (approx 3000 chars per page)
-        const charLimits: { [key: string]: number } = {
-            'Free': 15000,   // ~5 pages
-            'Starter': 45000, // ~15 pages
-            // Pro and Team are effectively unlimited (or set very high)
-        };
+            const charLimits: { [key: string]: number } = {
+                'Free': 15000,
+                'Starter': 45000,
+            };
 
-        // ADMIN BYPASS: If role is admin, skip limit check
-        if (user.role !== 'admin') {
-            // 1. Check Document Count Limit
             if (user.documentsAnalyzed >= limit) {
                 return res.status(403).json({
                     message: `You have reached the limit of ${limit} documents for the ${user.plan} plan. Please upgrade to analyze more.`
                 });
             }
 
-            // 2. Check Content Length Limit (Page Limit mock)
             const contentLen = content ? content.length : 0;
             const maxChars = charLimits[user.plan];
 
@@ -180,38 +184,37 @@ router.post('/', auth, async (req: AuthRequest, res) => {
         }
 
         // 2. Feature Gating: Filter Result based on Plan
-        const userPlan = (user.plan || 'Free');
+        if (user) {
+            const userPlan = (user.plan || 'Free');
 
-        if (user.role !== 'admin') {
-            if (userPlan === 'Free') {
-                // Free: Hide negotiation points, masking risk levels
-                analysisResult.negotiationPoints = [];
-                if (analysisResult.risks) {
-                    analysisResult.risks = analysisResult.risks.map((r: any) => ({
-                        ...r,
-                        level: 'Hidden (Upgrade to View)', // Masking
-                        consequence: 'Hidden (Upgrade to View)'
-                    }));
+            if (user.role !== 'admin') {
+                if (userPlan === 'Free') {
+                    analysisResult.negotiationPoints = [];
+                    if (analysisResult.risks) {
+                        analysisResult.risks = analysisResult.risks.map((r: any) => ({
+                            ...r,
+                            level: 'Hidden (Upgrade to View)',
+                            consequence: 'Hidden (Upgrade to View)'
+                        }));
+                    }
+                } else if (userPlan === 'Starter') {
+                    analysisResult.negotiationPoints = [];
                 }
-            } else if (userPlan === 'Starter') {
-                // Starter: Hide negotiation points (Pro feature)
-                analysisResult.negotiationPoints = [];
             }
         }
 
-        // PRIVACY UPDATE: Do NOT save to Analysis model.
-        // We only return the result.
+        // Audit Log
+        if (userId) {
+            logger.logAction(userId, 'DOCUMENT_ANALYZED', {
+                fileName: fileName || 'Untitled',
+                fileType: type,
+                model: usedModel,
+                plan: user?.plan
+            });
 
-        // Audit Log: Log the action but NOT the content
-        logger.logAction(userId, 'DOCUMENT_ANALYZED', {
-            fileName: fileName || 'Untitled',
-            fileType: type,
-            model: usedModel,
-            plan: user.plan
-        });
-
-        // Update user stats
-        await User.findByIdAndUpdate(userId, { $inc: { documentsAnalyzed: 1 } });
+            // Update user stats
+            await User.findByIdAndUpdate(userId, { $inc: { documentsAnalyzed: 1 } });
+        }
 
         // Return the stateless result (add fileName/id for frontend compatibility if needed, though id will be null)
         const responsePayload = {
