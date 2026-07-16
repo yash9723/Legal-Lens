@@ -137,18 +137,23 @@ IMPORTANT ANALYSIS GUIDELINES:
       promptParts.push(`Document Content:\n${content}`);
     }
 
-    const model = genAI.getGenerativeModel({ model: 'gemini-flash-latest' });
-
+    const modelsToTry = ['gemini-2.0-flash', 'gemini-2.5-flash', 'gemini-flash-latest'];
     let text = '';
     let success = false;
+    let lastError;
 
-    try {
-      const result = await model.generateContent(promptParts);
-      const response = await result.response;
-      text = response.text();
-      success = true;
-    } catch (e: any) {
-      logger.error(`Case analysis model failed: ${e.message}`);
+    for (const modelName of modelsToTry) {
+      try {
+        const model = genAI.getGenerativeModel({ model: modelName });
+        const result = await model.generateContent(promptParts);
+        const response = await result.response;
+        text = response.text();
+        success = true;
+        break;
+      } catch (e: any) {
+        logger.warn(`Case analysis model failed with ${modelName}: ${e.message}`);
+        lastError = e;
+      }
     }
 
     if (!success) {
