@@ -12,7 +12,7 @@ router.post('/', async (req, res) => {
             return res.status(400).json({ message: 'No text provided for simplification' });
         }
 
-        const model = genAI.getGenerativeModel({ model: 'gemini-flash-latest' });
+        const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
 
         let prompt = '';
 

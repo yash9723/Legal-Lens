@@ -13,7 +13,7 @@ router.post('/', async (req, res) => {
             return res.status(400).json({ message: 'No text provided for extraction' });
         }
 
-        const model = genAI.getGenerativeModel({ model: 'gemini-flash-latest' });
+        const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
 
         const prompt = `
             You are a legal operations assistant. Extract all critical dates and deadlines from the following legal text.

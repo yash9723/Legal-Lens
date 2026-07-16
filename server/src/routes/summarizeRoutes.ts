@@ -13,7 +13,7 @@ router.post('/', async (req, res) => {
             return res.status(400).json({ message: 'No text provided for summarization' });
         }
 
-        const model = genAI.getGenerativeModel({ model: 'gemini-flash-latest' });
+        const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
 
         const prompt = `
             You are an expert legal researcher. Summarize the following legal text for a quick executive briefing.
