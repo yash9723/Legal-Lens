@@ -6,7 +6,7 @@ import { logger } from '../services/loggerService';
 import { redactPII } from '../utils/fileProcessor';
 
 // Configure pdfjs worker
-pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
 
 interface InputAreaProps {
   onAnalyze: (params: AnalyzeParams) => void;
