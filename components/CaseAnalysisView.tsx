@@ -109,11 +109,15 @@ const CaseAnalysisView: React.FC<CaseAnalysisViewProps> = ({ user, onLoginClick 
                     const pageText = content.items.map((item: any) => item.str).join(' ');
                     fullText += pageText + '\n\n';
                 }
+                if (fullText.replace(/\s/g, '').length < 20) {
+                    setError('This PDF has no selectable text (it looks scanned or image-only). Upload it as a JPG/PNG instead, or paste the text.');
+                    return;
+                }
                 setTextInput(fullText.trim());
                 setUploadedContent(null);
                 logger.info('ai', `PDF extracted: ${pdf.numPages} pages`);
             } catch (err) {
-                setError('Failed to extract text from PDF. Try pasting the text directly.');
+                setError("Couldn't read this PDF. It may be corrupted or password-protected. Try pasting the text directly.");
                 logger.error('ai', 'PDF extraction failed', err);
             }
         } else if (file.type.startsWith('image/')) {

@@ -204,11 +204,15 @@ const PdfToTextConverter = () => {
                 const strings = content.items.map((item: any) => item.str);
                 fullText += strings.join(' ') + '\n\n';
             }
+            if (fullText.replace(/\s/g, '').length < 20) {
+                setError('This PDF has no selectable text (it looks scanned or image-only). Paste the text instead.');
+                return;
+            }
             setExtractedText(fullText);
             logger.info('tools', 'Successfully extracted text from PDF', { fileName: file.name });
         } catch (err) {
             console.error(err);
-            setError('Failed to extract text from PDF.');
+            setError("Couldn't read this PDF. It may be corrupted or password-protected.");
         } finally {
             setIsProcessing(false);
         }

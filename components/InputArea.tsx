@@ -118,16 +118,19 @@ const InputArea: React.FC<InputAreaProps> = ({ onAnalyze, isAnalyzing }) => {
           const strings = content.items.map((item: any) => item.str);
           fullText += strings.join(' ') + '\n';
         }
-        return {
-          name: file.name,
-          type: 'pdf',
-          content: fullText,
-          size: file.size
-        };
+        if (fullText.replace(/\s/g, '').length >= 20) {
+          return {
+            name: file.name,
+            type: 'pdf',
+            content: fullText,
+            size: file.size
+          };
+        }
       } catch (e) {
         console.error("PDF Extraction Error", e);
-        throw `Failed to extract text from ${file.name}`;
+        throw `Couldn't read ${file.name}. The file may be corrupted or password-protected.`;
       }
+      throw `${file.name} has no selectable text (it looks like a scanned or image-only PDF). Upload it as a JPG/PNG instead, or paste the text.`;
     } else {
       return new Promise((resolve, reject) => {
         const reader = new FileReader();

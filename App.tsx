@@ -1,15 +1,6 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import Header from './components/Header';
-import InputArea from './components/InputArea';
-import AnalysisView from './components/AnalysisView';
-import PricingView from './components/PricingView';
-import ComparisonView from './components/ComparisonView';
-import LoginModal from './components/LoginModal';
-import LogViewer from './components/LogViewer';
-import SettingsModal from './components/SettingsModal';
-import ToolsView from './components/ToolsView';
-import CaseAnalysisView from './components/CaseAnalysisView';
 import { analyzeContract } from './services/geminiService';
 import { logger } from './services/loggerService';
 import { StorageService } from './services/storageService';
@@ -17,6 +8,23 @@ import { AnalysisResult, UserProfile, AnalyzeParams, SavedAnalysis } from './typ
 import { AlertCircle, Bug, X } from 'lucide-react';
 import { AuthService } from './services/authService';
 import WelcomePage from './components/WelcomePage';
+
+// Heavy views/modals load on demand so the first paint ships a much smaller bundle
+const InputArea = lazy(() => import('./components/InputArea'));
+const AnalysisView = lazy(() => import('./components/AnalysisView'));
+const PricingView = lazy(() => import('./components/PricingView'));
+const ComparisonView = lazy(() => import('./components/ComparisonView'));
+const LoginModal = lazy(() => import('./components/LoginModal'));
+const LogViewer = lazy(() => import('./components/LogViewer'));
+const SettingsModal = lazy(() => import('./components/SettingsModal'));
+const ToolsView = lazy(() => import('./components/ToolsView'));
+const CaseAnalysisView = lazy(() => import('./components/CaseAnalysisView'));
+
+const PageLoader: React.FC = () => (
+  <div className="flex items-center justify-center py-32" role="status" aria-label="Loading">
+    <div className="w-8 h-8 rounded-full border-2 border-slate-300 dark:border-slate-700 border-t-blue-500 animate-spin" />
+  </div>
+);
 
 const App: React.FC = () => {
   const [currentTab, setCurrentTab] = useState<'analyze' | 'pricing' | 'compare' | 'tools' | 'case-analysis'>('analyze');
@@ -300,7 +308,8 @@ const App: React.FC = () => {
           }}
         />
 
-        <LoginModal
+        <Suspense fallback={null}>
+        {isLoginModalOpen && <LoginModal
           isOpen={isLoginModalOpen}
           onClose={() => setIsLoginModalOpen(false)}
           onLogin={(userData) => {
@@ -310,9 +319,9 @@ const App: React.FC = () => {
             logger.info('auth', 'User logged in via modal');
           }}
           resetToken={resetToken}
-        />
+        />}
 
-        {user && (
+        {user && isSettingsOpen && (
           <SettingsModal
             isOpen={isSettingsOpen}
             onClose={() => setIsSettingsOpen(false)}
@@ -327,14 +336,16 @@ const App: React.FC = () => {
           />
         )}
 
-        <LogViewer
+        {isLogViewerOpen && <LogViewer
           isOpen={isLogViewerOpen}
           onClose={() => setIsLogViewerOpen(false)}
-        />
+        />}
+        </Suspense>
 
         <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 flex flex-col pb-12">
 
           <div className="flex-1">
+            <Suspense fallback={<PageLoader />}>
             {currentTab === 'pricing' && (
               <PricingView
                 user={user}
@@ -429,6 +440,7 @@ const App: React.FC = () => {
                 )}
               </>
             )}
+            </Suspense>
           </div>
 
           {/* Persistent Footer with Logs Access */}
