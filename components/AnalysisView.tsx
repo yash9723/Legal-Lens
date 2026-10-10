@@ -53,6 +53,12 @@ interface AnalysisViewProps {
   userPlan?: string;
 }
 
+const esc = (v: unknown): string =>
+  String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c] as string));
+
+const RISK_RANK: Record<string, number> = { High: 0, Medium: 1, Low: 2 };
+const riskRank = (level: string) => RISK_RANK[level] ?? 2;
+
 const RiskBadge: React.FC<{ level: string }> = ({ level }) => {
   const styles = {
     High: "bg-red-500 text-white border-red-600",
@@ -165,6 +171,14 @@ const AnalysisView: React.FC<AnalysisViewProps> = ({ data, onReset, imageUrl, an
   const [isNegotiating, setIsNegotiating] = useState(false);
   const [showNegotiationModal, setShowNegotiationModal] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
+  const [riskFilter, setRiskFilter] = useState<'All' | 'High' | 'Medium' | 'Low'>('All');
+  const [copiedKey, setCopiedKey] = useState<string | null>(null);
+
+  const showToast = (message: string) => {
+    setToast(message);
+    setTimeout(() => setToast(null), 3500);
+  };
 
   const handleNegotiate = async () => {
     setIsNegotiating(true);
@@ -178,7 +192,7 @@ const AnalysisView: React.FC<AnalysisViewProps> = ({ data, onReset, imageUrl, an
       setShowNegotiationModal(true);
     } catch (error) {
       console.error("Negotiation error", error);
-      alert("Failed to generate email. Please try again.");
+      showToast("Could not generate the email. Please try again.");
     } finally {
       setIsNegotiating(false);
     }
@@ -275,6 +289,11 @@ const AnalysisView: React.FC<AnalysisViewProps> = ({ data, onReset, imageUrl, an
     acc[risk.level] = (acc[risk.level] || 0) + 1;
     return acc;
   }, { High: 0, Medium: 0, Low: 0 } as Record<string, number>);
+
+  const sortedRisks = [...data.risks].sort((a, b) => riskRank(a.level.replace(/Hidden.*/, 'Low')) - riskRank(b.level.replace(/Hidden.*/, 'Low')));
+  const visibleRisks = riskFilter === 'All' ? sortedRisks : sortedRisks.filter(r => r.level === riskFilter);
+  const compliance = data.indianLegalCompliance;
+  const hasJurisdiction = !!(data.governingLaw || data.disputeResolution || data.transactionValue || compliance);
 
   const chartData = [
     { name: 'High Risk', value: riskCounts.High, color: '#ef4444' },    // Red-500
@@ -381,7 +400,7 @@ const AnalysisView: React.FC<AnalysisViewProps> = ({ data, onReset, imageUrl, an
         <head>
             <meta charset="UTF-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>LegalLens Analysis - ${data.oneLineOverview.substring(0, 30)}...</title>
+            <title>LegalLens Analysis - ${esc(data.oneLineOverview.substring(0, 30))}...</title>
             <style>
                 body { font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; color: #1e293b; max-width: 800px; margin: 0 auto; padding: 40px; line-height: 1.6; }
                 .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 30px; border-bottom: 2px solid #e2e8f0; padding-bottom: 20px; }
@@ -418,23 +437,23 @@ const AnalysisView: React.FC<AnalysisViewProps> = ({ data, onReset, imageUrl, an
                 <div class="meta">
                     <div>Generated: ${new Date().toLocaleDateString()}</div>
                     <div>Time: ${new Date().toLocaleTimeString()}</div>
-                    <div class="verdict verdict-${data.verdict.status.split(' ')[0]}">${data.verdict.status}</div>
+                    <div class="verdict verdict-${esc(data.verdict.status.split(' ')[0])}">${esc(data.verdict.status)}</div>
                 </div>
             </div>
             <div class="card" style="background: #eff6ff; border-color: #bfdbfe;">
                 <span class="label" style="color: #2563eb;">One-Line Overview</span>
-                <p style="margin: 0; font-weight: 500; color: #1e3a8a;">${data.oneLineOverview}</p>
+                <p style="margin: 0; font-weight: 500; color: #1e3a8a;">${esc(data.oneLineOverview)}</p>
             </div>
             <div class="card">
                 <span class="label">Verdict Explanation</span>
-                <p style="margin: 0;">${data.verdict.explanation}</p>
+                <p style="margin: 0;">${esc(data.verdict.explanation)}</p>
             </div>
             <h2>Contract Snapshot</h2>
             <div class="grid-2">
                 ${data.contractSnapshot.map(item => `
                     <div class="card" style="margin-bottom: 0;">
-                        <span class="label">${item.label}</span>
-                        <span class="value">${item.value}</span>
+                        <span class="label">${esc(item.label)}</span>
+                        <span class="value">${esc(item.value)}</span>
                     </div>
                 `).join('')}
             </div>
@@ -444,11 +463,11 @@ const AnalysisView: React.FC<AnalysisViewProps> = ({ data, onReset, imageUrl, an
                 ${data.risks.map(risk => `
                     <div class="risk">
                         <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
-                            <span class="badge badge-${risk.level}">${risk.level} Risk</span>
-                            <span style="font-size: 11px; color: #64748b;">Favors: ${risk.favors}</span>
+                            <span class="badge badge-${esc(risk.level)}">${esc(risk.level)} Risk</span>
+                            <span style="font-size: 11px; color: #64748b;">Favors: ${esc(risk.favors)}</span>
                         </div>
-                        <div style="font-weight: 600; margin-bottom: 4px;">${risk.description}</div>
-                        <div style="font-size: 13px; color: #475569; font-style: italic;">Consequence: ${risk.consequence}</div>
+                        <div style="font-weight: 600; margin-bottom: 4px;">${esc(risk.description)}</div>
+                        <div style="font-size: 13px; color: #475569; font-style: italic;">Consequence: ${esc(risk.consequence)}</div>
                     </div>
                 `).join('')}
             </div>
@@ -457,11 +476,11 @@ const AnalysisView: React.FC<AnalysisViewProps> = ({ data, onReset, imageUrl, an
               <div class="card" style="background: #fff7ed;">
                   ${data.negotiationPoints.map(p => `
                       <div class="neg-point">
-                          <div style="font-weight: 700; color: #9a3412; font-size: 12px; text-transform: uppercase;">Clause: ${p.clause}</div>
-                          <div style="font-weight: 600; margin-top: 4px; margin-bottom: 4px;">Issue: ${p.issue}</div>
-                          <div style="font-style: italic; color: #431407; font-size: 14px;">"Suggestion: ${p.suggestion}"</div>
+                          <div style="font-weight: 700; color: #9a3412; font-size: 12px; text-transform: uppercase;">Clause: ${esc(p.clause)}</div>
+                          <div style="font-weight: 600; margin-top: 4px; margin-bottom: 4px;">Issue: ${esc(p.issue)}</div>
+                          <div style="font-style: italic; color: #431407; font-size: 14px;">"Suggestion: ${esc(p.suggestion)}"</div>
                           <div style="font-size: 11px; color: #78350f; margin-top: 4px; background: #fff7ed; padding: 4px 8px; border-radius: 4px; border: 1px solid #fed7aa;">
-                            <strong>Rationale:</strong> ${p.rationale}
+                            <strong>Rationale:</strong> ${esc(p.rationale)}
                           </div>
                       </div>
                   `).join('')}
@@ -471,41 +490,32 @@ const AnalysisView: React.FC<AnalysisViewProps> = ({ data, onReset, imageUrl, an
             <div style="display: grid; gap: 16px;">
                 ${data.keyClauses.map((clause, idx) => `
                     <div style="background: white; border: 1px solid #e2e8f0; padding: 12px; border-radius: 8px;">
-                        <h3>${clause.title}</h3>
-                        <p style="margin: 0; font-size: 14px; color: #475569;">${clause.explanation}</p>
+                        <h3>${esc(clause.title)}</h3>
+                        <p style="margin: 0; font-size: 14px; color: #475569;">${esc(clause.explanation)}</p>
                     </div>
                 `).join('')}
             </div>
-            {/* ... rest of the export content ... */
-
-            {data.missingClauses && data.missingClauses.length > 0 && (
-              <div className="mt-8">
-                <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
-                  <AlertOctagon className="w-5 h-5 text-red-500" />
-                  Missing Clauses
-                </h2>
-                <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800 rounded-xl">
-                  <p className="text-sm text-red-800 dark:text-red-200 mb-2 font-medium">
-                    The following standard clauses appear to be missing from this contract:
-                  </p>
-                  <ul className="space-y-1">
-                     {data.missingClauses.map((clause, idx) => (
-                       <li key={idx} className="flex items-center gap-2 text-sm text-red-700 dark:text-red-300">
-                         <X className="w-4 h-4" /> {clause}
-                       </li>
-                     ))}
-                  </ul>
+            ${data.missingClauses && data.missingClauses.length > 0 ? `
+                <h2>Missing Standard Clauses</h2>
+                <div class="card"><ul style="margin:0; padding-left:18px;">${data.missingClauses.map(c => `<li>${esc(c)}</li>`).join('')}</ul></div>
+            ` : ''}
+            ${data.governingLaw || data.disputeResolution || data.transactionValue ? `
+                <h2>Jurisdiction & Compliance</h2>
+                <div class="grid-2">
+                    ${data.governingLaw ? `<div class="card" style="margin-bottom:0;"><span class="label">Governing Law</span><span class="value">${esc(data.governingLaw)}</span></div>` : ''}
+                    ${data.disputeResolution ? `<div class="card" style="margin-bottom:0;"><span class="label">Dispute Resolution</span><span class="value">${esc(data.disputeResolution)}</span></div>` : ''}
+                    ${data.transactionValue ? `<div class="card" style="margin-bottom:0;"><span class="label">Transaction Value</span><span class="value">${esc(data.transactionValue)}</span></div>` : ''}
                 </div>
-              </div>
-            )}
+                ${(data.indianLegalCompliance?.statutoryWarnings || []).length > 0 ? `<div class="card" style="margin-top:16px;">${data.indianLegalCompliance!.statutoryWarnings.map(w => `<div>&bull; ${esc(w)}</div>`).join('')}</div>` : ''}
+            ` : ''}
             <h2>Obligations</h2>
             <div class="card">
                 ${data.obligations.map(ob => `
                     <div style="margin-bottom: 12px; border-bottom: 1px solid #f1f5f9; padding-bottom: 8px;">
-                        <div style="font-weight: 600;">${ob.task}</div>
+                        <div style="font-weight: 600;">${esc(ob.task)}</div>
                         <div style="font-size: 12px; margin-top: 4px; display: flex; gap: 10px;">
-                            <span style="color: #2563eb; background: #eff6ff; padding: 2px 6px; border-radius: 4px;">By: ${ob.deadline}</span>
-                            ${ob.penalty !== 'None' ? `<span style="color: #dc2626; background: #fef2f2; padding: 2px 6px; border-radius: 4px;">Penalty: ${ob.penalty}</span>` : ''}
+                            <span style="color: #2563eb; background: #eff6ff; padding: 2px 6px; border-radius: 4px;">By: ${esc(ob.deadline)}</span>
+                            ${ob.penalty !== 'None' ? `<span style="color: #dc2626; background: #fef2f2; padding: 2px 6px; border-radius: 4px;">Penalty: ${esc(ob.penalty)}</span>` : ''}
                         </div>
                     </div>
                 `).join('')}
@@ -514,7 +524,7 @@ const AnalysisView: React.FC<AnalysisViewProps> = ({ data, onReset, imageUrl, an
             ${data.moneyAndExit ? `
                 <h2>Money & Exit</h2>
                 <div class="card">
-                    <p style="margin: 0; white-space: pre-wrap;">${data.moneyAndExit}</p>
+                    <p style="margin: 0; white-space: pre-wrap;">${esc(data.moneyAndExit)}</p>
                 </div>
             ` : ''}
             ${data.visualInsights && data.visualInsights.length > 0 ? `
@@ -523,10 +533,10 @@ const AnalysisView: React.FC<AnalysisViewProps> = ({ data, onReset, imageUrl, an
                     ${data.visualInsights.map(v => `
                         <div style="margin-bottom: 12px; border-bottom: 1px dashed #e2e8f0; padding-bottom: 10px;">
                             <div style="display: flex; justify-content: space-between;">
-                                <span style="font-weight: 700; color: #7e22ce; font-size: 12px; text-transform: uppercase;">${v.type}</span>
-                                <span style="font-size: 11px; color: #64748b;">Relevance: ${v.relevance}</span>
+                                <span style="font-weight: 700; color: #7e22ce; font-size: 12px; text-transform: uppercase;">${esc(v.type)}</span>
+                                <span style="font-size: 11px; color: #64748b;">Relevance: ${esc(v.relevance)}</span>
                             </div>
-                            <div style="margin-top: 2px;">${v.description}</div>
+                            <div style="margin-top: 2px;">${esc(v.description)}</div>
                         </div>
                     `).join('')}
                 </div>
@@ -588,7 +598,7 @@ const AnalysisView: React.FC<AnalysisViewProps> = ({ data, onReset, imageUrl, an
 
             {userPlan === 'Free' ? (
               <button
-                onClick={() => alert("Upgrade to Starter to export PDF reports!")}
+                onClick={() => showToast("Upgrade to Starter to export PDF reports.")}
                 className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 text-sm font-bold rounded-xl cursor-not-allowed"
               >
                 <Download className="w-4 h-4" /> <span className="hidden sm:inline">Unlock Export</span>
@@ -690,6 +700,41 @@ const AnalysisView: React.FC<AnalysisViewProps> = ({ data, onReset, imageUrl, an
               </div>
             </div>
 
+            {/* Jurisdiction & Compliance */}
+            {hasJurisdiction && (
+              <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200/50 dark:border-slate-700/50 overflow-hidden">
+                <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-700/50 flex items-center gap-2 bg-slate-50/50 dark:bg-slate-800/50">
+                  <MapPin className="w-5 h-5 text-sky-500" />
+                  <h3 className="font-bold text-slate-800 dark:text-slate-200">Jurisdiction & Compliance</h3>
+                </div>
+                <div className="p-6 space-y-4">
+                  {([['Governing Law', data.governingLaw], ['Dispute Resolution', data.disputeResolution], ['Transaction Value', data.transactionValue]] as const)
+                    .filter(([, value]) => value)
+                    .map(([label, value]) => (
+                      <div key={label}>
+                        <span className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider block mb-0.5">{label}</span>
+                        <span className="text-sm font-semibold text-slate-800 dark:text-slate-200 leading-snug">{value}</span>
+                      </div>
+                    ))}
+                  {compliance && (
+                    <div className={`flex items-start gap-2 p-3 rounded-xl border text-xs font-medium ${compliance.stampDutyApplicable ? 'bg-amber-50 dark:bg-amber-900/10 border-amber-200 dark:border-amber-800/50 text-amber-800 dark:text-amber-300' : 'bg-emerald-50 dark:bg-emerald-900/10 border-emerald-200 dark:border-emerald-800/50 text-emerald-800 dark:text-emerald-300'}`}>
+                      <Stamp className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                      {compliance.stampDutyApplicable ? 'Stamp duty applies. Make sure the document is properly stamped to be admissible in court.' : 'No stamp duty flagged for this document.'}
+                    </div>
+                  )}
+                  {compliance && compliance.statutoryWarnings?.length > 0 && (
+                    <ul className="space-y-2">
+                      {compliance.statutoryWarnings.map((w, i) => (
+                        <li key={i} className="flex items-start gap-2 text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                          <AlertTriangle className="w-3.5 h-3.5 text-amber-500 flex-shrink-0 mt-0.5" /> {w}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              </div>
+            )}
+
             {/* Visual Analysis (Interactive) */}
             {hasVisuals && (
               <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200/50 dark:border-slate-700/50 overflow-hidden">
@@ -770,6 +815,27 @@ const AnalysisView: React.FC<AnalysisViewProps> = ({ data, onReset, imageUrl, an
                 </div>
               </div>
 
+              {data.risks.length > 0 && (
+                <div className="px-6 py-3 border-b border-slate-100 dark:border-slate-700/50 flex flex-wrap items-center gap-2" role="group" aria-label="Filter risks by severity">
+                  {([
+                    ['All', data.risks.length, 'bg-slate-900 text-white dark:bg-white dark:text-slate-900'],
+                    ['High', riskCounts.High, 'bg-red-500 text-white'],
+                    ['Medium', riskCounts.Medium, 'bg-orange-500 text-white'],
+                    ['Low', riskCounts.Low, 'bg-green-500 text-white'],
+                  ] as const).map(([label, count, active]) => (
+                    <button
+                      key={label}
+                      onClick={() => setRiskFilter(label)}
+                      aria-pressed={riskFilter === label}
+                      disabled={count === 0 && label !== 'All'}
+                      className={`px-3 py-1 rounded-full text-xs font-bold transition-all disabled:opacity-30 disabled:cursor-not-allowed ${riskFilter === label ? active : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600'}`}
+                    >
+                      {label} <span className="opacity-70">{count}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+
               <div className="divide-y divide-slate-100 dark:divide-slate-700/50">
                 {data.risks.length === 0 ? (
                   <div className="p-12 text-center text-slate-500 dark:text-slate-400">
@@ -777,7 +843,7 @@ const AnalysisView: React.FC<AnalysisViewProps> = ({ data, onReset, imageUrl, an
                     <p className="text-lg font-medium">No significant risks detected.</p>
                   </div>
                 ) : (
-                  data.risks.map((risk, idx) => (
+                  visibleRisks.map((risk, idx) => (
                     <div key={idx} className="p-6 hover:bg-slate-50/80 dark:hover:bg-slate-700/20 transition-colors group">
                       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-3">
                         <div className="flex-1">
@@ -858,14 +924,40 @@ const AnalysisView: React.FC<AnalysisViewProps> = ({ data, onReset, imageUrl, an
               </div>
             )}
 
+            {data.missingClauses && data.missingClauses.length > 0 && (
+              <div className="p-5 bg-red-50 dark:bg-red-900/10 border border-red-100 dark:border-red-800/50 rounded-2xl">
+                <h4 className="text-sm font-bold text-red-800 dark:text-red-200 mb-3 flex items-center gap-2">
+                  <AlertOctagon className="w-4 h-4" /> Missing Standard Clauses
+                </h4>
+                <ul className="grid sm:grid-cols-2 gap-x-6 gap-y-1.5">
+                  {data.missingClauses.map((clause, idx) => (
+                    <li key={idx} className="flex items-center gap-2 text-xs text-red-700 dark:text-red-300">
+                      <span className="w-1.5 h-1.5 rounded-full bg-red-400 flex-shrink-0"></span> {clause}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
             <div className="grid md:grid-cols-2 gap-8">
               {/* Obligations */}
               <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200/50 dark:border-slate-700/50 overflow-hidden flex flex-col h-full">
-                <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-700/50 flex items-center gap-2 bg-slate-50/50 dark:bg-slate-800/50">
-                  <Clock className="w-5 h-5 text-blue-500" />
-                  <h3 className="font-bold text-slate-800 dark:text-slate-200">Deadlines & Tasks</h3>
+                <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-700/50 flex items-center justify-between gap-2 bg-slate-50/50 dark:bg-slate-800/50">
+                  <div className="flex items-center gap-2">
+                    <Clock className="w-5 h-5 text-blue-500" />
+                    <h3 className="font-bold text-slate-800 dark:text-slate-200">Deadlines & Tasks</h3>
+                  </div>
+                  {data.obligations.length > 0 && (
+                    <button
+                      onClick={() => generateICS(data.obligations, 'Contract')}
+                      className="text-xs flex items-center gap-1 px-3 py-1.5 bg-blue-50 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300 rounded-lg hover:bg-blue-100 transition-colors font-bold border border-blue-100 dark:border-blue-800"
+                    >
+                      <Clock className="w-3 h-3" /> Add to Calendar
+                    </button>
+                  )}
                 </div>
                 <div className="p-6 flex-1">
+                  {data.obligations.length === 0 && <p className="text-sm text-slate-500 dark:text-slate-400">No specific deadlines or tasks were found in this document.</p>}
                   <ul className="space-y-6">
                     {data.obligations.map((item, idx) => (
                       <li key={idx} className="flex items-start gap-3 relative">
@@ -950,18 +1042,14 @@ const AnalysisView: React.FC<AnalysisViewProps> = ({ data, onReset, imageUrl, an
                                   <button
                                     onClick={() => {
                                       navigator.clipboard.writeText(text);
-                                      const btn = document.getElementById(`copy-btn-${key}`);
-                                      if (btn) {
-                                        const original = btn.innerHTML;
-                                        btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-check"><polyline points="20 6 9 17 4 12"/></svg>';
-                                        setTimeout(() => btn.innerHTML = original, 2000);
-                                      }
+                                      setCopiedKey(key);
+                                      setTimeout(() => setCopiedKey(k => (k === key ? null : k)), 2000);
                                     }}
-                                    id={`copy-btn-${key}`}
                                     className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
                                     title="Copy"
+                                    aria-label="Copy simplified text"
                                   >
-                                    <Copy className="w-3 h-3" />
+                                    {copiedKey === key ? <Check className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3" />}
                                   </button>
                                 )}
                               </div>
@@ -985,40 +1073,6 @@ const AnalysisView: React.FC<AnalysisViewProps> = ({ data, onReset, imageUrl, an
                       })}
                     </div>
                   ))}
-                </div>
-              </div>
-              {/* Obligations & Deadlines (With Calendar Export) */}
-              <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200/50 dark:border-slate-700/50 overflow-hidden">
-                <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-700/50 flex items-center justify-between bg-slate-50/50 dark:bg-slate-800/50">
-                  <div className="flex items-center gap-2">
-                    <Clock className="w-5 h-5 text-indigo-500" />
-                    <h3 className="font-bold text-slate-800 dark:text-slate-200">Obligations & Key Deadlines</h3>
-                  </div>
-                  {data.obligations && data.obligations.length > 0 && (
-                    <button
-                      onClick={() => generateICS(data.obligations, 'Contract')}
-                      className="text-xs flex items-center gap-1 px-3 py-1.5 bg-blue-50 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300 rounded-lg hover:bg-blue-100 transition-colors font-bold border border-blue-100 dark:border-blue-800"
-                    >
-                      <Clock className="w-3 h-3" /> Add to Calendar
-                    </button>
-                  )}
-                </div>
-                <div className="p-6">
-                  {/* Missing Clauses Alert */}
-                  {data.missingClauses && data.missingClauses.length > 0 && (
-                    <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/10 border border-red-100 dark:border-red-800/50 rounded-xl">
-                      <h4 className="text-sm font-bold text-red-800 dark:text-red-200 mb-2 flex items-center gap-2">
-                        <AlertOctagon className="w-4 h-4" /> Missing Standard Clauses
-                      </h4>
-                      <ul className="space-y-1">
-                        {data.missingClauses.map((clause, idx) => (
-                          <li key={idx} className="flex items-center gap-2 text-xs text-red-700 dark:text-red-300">
-                            <span className="w-1.5 h-1.5 rounded-full bg-red-400"></span> {clause}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
                 </div>
               </div>
             </div>
@@ -1173,6 +1227,12 @@ const AnalysisView: React.FC<AnalysisViewProps> = ({ data, onReset, imageUrl, an
 
       {/* New Chat Widget */}
       <ChatWidget analyzeParams={analyzeParams} analysisResult={data} />
+
+      {toast && (
+        <div role="status" className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[90] px-5 py-3 rounded-xl bg-slate-900 text-white dark:bg-white dark:text-slate-900 text-sm font-medium shadow-2xl">
+          {toast}
+        </div>
+      )}
 
       {/* Negotiation Modal */}
       {showNegotiationModal && (
