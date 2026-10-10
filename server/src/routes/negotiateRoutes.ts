@@ -15,7 +15,7 @@ router.post('/', async (req, res) => {
             return res.status(400).json({ message: 'Risks array is required' });
         }
 
-        const modelName = 'gemini-2.0-flash';
+        const modelName = 'gemini-2.5-flash';
         console.log(`Initializing model: ${modelName}`);
         const model = genAI.getGenerativeModel({ model: modelName });
 

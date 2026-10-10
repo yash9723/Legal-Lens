@@ -125,8 +125,8 @@ router.post('/', async (req: AuthRequest, res) => {
         }
 
         // Fastest models first for quick responses
-        const textModels = ['gemini-2.0-flash', 'gemini-2.5-flash', 'gemini-flash-latest'];
-        const imageModels = ['gemini-2.0-flash', 'gemini-2.5-flash', 'gemini-flash-latest'];
+        const textModels = ['gemini-2.5-flash', 'gemini-flash-latest'];
+        const imageModels = ['gemini-2.5-flash', 'gemini-flash-latest'];
 
         const modelsToTry = type === 'image' ? imageModels : textModels;
 

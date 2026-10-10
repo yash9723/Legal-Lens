@@ -137,7 +137,7 @@ IMPORTANT ANALYSIS GUIDELINES:
       promptParts.push(`Document Content:\n${content}`);
     }
 
-    const modelsToTry = ['gemini-2.0-flash', 'gemini-2.5-flash', 'gemini-flash-latest'];
+    const modelsToTry = ['gemini-2.5-flash', 'gemini-flash-latest'];
     let text = '';
     let success = false;
     let lastError;
