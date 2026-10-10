@@ -10,6 +10,7 @@ import {
     FileQuestion, XCircle, Crosshair, Lightbulb
 } from 'lucide-react';
 import * as pdfjsLib from 'pdfjs-dist';
+import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 import {
     CaseAnalysisResult, CaseAnalyzeParams, CaseType,
     CaseParty, CaseTimelineEvent, LegalIssue, CasePrecedent,
@@ -20,7 +21,7 @@ import { logger } from '../services/loggerService';
 import { UserProfile } from '../types';
 
 // PDF.js worker
-pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
+pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
 
 interface CaseAnalysisViewProps {
     user: UserProfile | null;

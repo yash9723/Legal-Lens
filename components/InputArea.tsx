@@ -1,12 +1,13 @@
 import React, { useState, useRef, useEffect } from 'react';
 import * as pdfjsLib from 'pdfjs-dist';
+import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 import { Upload, FileText, X, ImageIcon, ScanLine, AlertCircle, Loader2, ArrowRight, CheckCircle2, Globe, Languages, Check, CloudUpload, Shield, FileType } from 'lucide-react';
 import { AnalyzeParams } from '../types';
 import { logger } from '../services/loggerService';
 import { redactPII } from '../utils/fileProcessor';
 
 // Configure pdfjs worker
-pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
+pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
 
 interface InputAreaProps {
   onAnalyze: (params: AnalyzeParams) => void;
